@@ -22,8 +22,8 @@ def registerhook():
 
 @app.route('/hook/',methods=['POST'])
 def receivehook():
-    body = request.stream.read()
-    print(body)
+    body = request.data
+    print("data to hook received: {}".format(body))
     return "OKAY"
 
 @app.route('/getmsg/', methods=['GET'])
