@@ -10,9 +10,15 @@ with open('dummy.json', 'r', encoding="utf8") as file:
 def test():
     return dummy
 
-@app.route('/hook/',methods=['POST','GET'])
+@app.route('/hook/',methods=['GET'])
+def registerhook():
+    print(request.args.get("hub.challenge"))
+    return request.args.get("hub.challenge")
+
+@app.route('/hook/',methods=['POST'])
 def receivehook():
-    print(request.form)
+    body = request.stream.read()
+    print(body)
 
 @app.route('/getmsg/', methods=['GET'])
 def respond():
