@@ -10,7 +10,7 @@ with open('dummy.json', 'r', encoding="utf8") as file:
 def test():
     return dummy
 
-@app.route('/hook/',methods=['GET'])
+@app.route('/hook',methods=['GET'])
 def registerhook():
     challenge = request.args.get("hub.challenge")
     print(request.stream.read())
@@ -20,9 +20,12 @@ def registerhook():
         print("verifying with challenge {}".format(challenge))
         return challenge
 
-@app.route('/hook/',methods=['POST'])
+@app.route('/hook',methods=['POST'])
 def receivehook():
-    body = request.get_data()
+    print(request.content_length)
+    print(request.content_type)
+    print(request.content_type)
+    body = request.get_data(cache=False, as_text=False, parse_form_data=False)
     print("data to hook received: {}".format(body))
     return "OKAY"
 
