@@ -22,7 +22,7 @@ def registerhook():
 
 @app.route('/hook/',methods=['POST'])
 def receivehook():
-    body = request.data
+    body = request.get_data()
     print("data to hook received: {}".format(body))
     return "OKAY"
 
