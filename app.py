@@ -12,8 +12,13 @@ def test():
 
 @app.route('/hook/',methods=['GET'])
 def registerhook():
-    print(request.args.get("hub.challenge"))
-    return request.args.get("hub.challenge")
+    challenge = request.args.get("hub.challenge")
+    print(request.stream.read())
+    if challenge is None:
+        return "OK"
+    else:
+        print("verifying with challenge {}".format(challenge))
+        return challenge
 
 @app.route('/hook/',methods=['POST'])
 def receivehook():
