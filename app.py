@@ -19,6 +19,7 @@ def registerhook():
 def receivehook():
     body = request.stream.read()
     print(body)
+    return "OKAY"
 
 @app.route('/getmsg/', methods=['GET'])
 def respond():
