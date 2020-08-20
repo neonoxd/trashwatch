@@ -8,3 +8,4 @@ Werkzeug==0.15.6
 psycopg2-binary
 requests
 python-dotenv
+xmltodict
