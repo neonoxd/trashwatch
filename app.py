@@ -45,7 +45,6 @@ def dbtest():
 
 def persist_sub(channelId):
     print("saving subscription of channel {}".format(channelId))
-    pass
 
 
 def persist_event(evt):
