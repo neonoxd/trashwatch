@@ -15,10 +15,6 @@ DATABASE_URL = os.environ['DATABASE_URL']
 SUBTOKEN = os.getenv('SUB_SECRET')
 APPURL = os.getenv('APPURL')
 
-with open('res/trash.csv', newline='', encoding="utf8") as csvfile:
-    trashread = csv.reader(csvfile, delimiter=',')
-    trashmap = {k[0]: k[1] for k in list(trashread)}
-
 
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 conn.autocommit = True

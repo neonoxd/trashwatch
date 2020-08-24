@@ -20,13 +20,9 @@ def is_conn_alive(conn):
 
 
 def get_subs_data(conn):
-    from app import trashmap as tmap
-    print(tmap)
     conn = is_conn_alive(conn)
     try:
-
         cursor = conn.cursor()
-
         select_subs_query = "select * from subscription"
         cursor.execute(select_subs_query)
         subs = cursor.fetchall()
@@ -35,8 +31,6 @@ def get_subs_data(conn):
 
         for k in subs:
             sub_obj[k[1]] = {}
-            if k[1] in tmap:
-                sub_obj[k[1]]["nick"] = tmap[k[1]]
             sub_obj[k[1]]["channel_id"] = k[1]
             if k[2] is not None:
                 sub_obj[k[1]]["lease_date"] = k[2].strftime("%m/%d/%Y, %H:%M:%S")
@@ -46,6 +40,8 @@ def get_subs_data(conn):
                 sub_obj[k[1]]["last_video"] = k[4].strip()
             if k[5] is not None:
                 sub_obj[k[1]]["video_title"] = k[5].strip()
+            if k[6] is not None:
+                sub_obj[k[1]]["nick"] = k[6]
 
         return sub_obj
 
