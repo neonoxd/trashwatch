@@ -1,77 +1,33 @@
-from flask import Flask, request, jsonify
+import csv
+import os
+import datetime
+import xmltodict
+import psycopg2
+from flask import Flask, request, jsonify, render_template
 import json
+from dotenv import load_dotenv
 
 app = Flask(__name__)
-from dotenv import load_dotenv
-import xmltodict
-import requests
 
 load_dotenv()
-
-import os
-import psycopg2
 
 DATABASE_URL = os.environ['DATABASE_URL']
 SUBTOKEN = os.getenv('SUB_SECRET')
 APPURL = os.getenv('APPURL')
 
-
-def dbtest():
-    try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-
-        cursor = conn.cursor()
-        postgreSQL_select_Query = "select * from distributors"
-
-        cursor.execute(postgreSQL_select_Query)
-        print("Selecting rows from mobile table using cursor.fetchall")
-        mobile_records = cursor.fetchall()
-
-        print("Print each row and it's columns values")
-        for row in mobile_records:
-            print("Id = ", row[0], )
-            print("Model = ", row[1])
-
-    except (Exception, psycopg2.Error) as error:
-        print("Error while fetching data from PostgreSQL", error)
-
-    finally:
-        # closing database connection.
-        if (conn):
-            conn.close()
-            conn.close()
-            print("PostgreSQL connection is closed")
+with open('res/trash.csv', newline='', encoding="utf8") as csvfile:
+    trashread = csv.reader(csvfile, delimiter=',')
+    trashmap = {k[0]: k[1] for k in list(trashread)}
 
 
-def persist_sub(channelId):
-    print("saving subscription of channel {}".format(channelId))
+conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+conn.autocommit = True
 
-
-def persist_event(evt):
-    print("persisting event")
-    print("channel: {} - {}, videoid: {}, videotitle: {}".format(
-        evt["name"], evt["channelId"], evt["videoId"], evt["videoTitle"]))
-
-def send_sub_for_channel(channelId,mode,token):
-    print("send sub for channel")
-    url = "https://pubsubhubbub.appspot.com/subscribe"
-    topicurl = "https://www.youtube.com/xml/feeds/videos.xml?channel_id={}"
-    cburl = "{}/hook".format(APPURL)
-    out_param = {
-        "hub.mode": mode,
-        'hub.topic': topicurl.format(channelId),
-        'hub.callback': cburl,
-        'hub.verify': "async",
-        'hub.verify_token': token
-    }
-    headers = {}
-    print("posting with params: {},\n headers: {}".format(out_param, headers))
-
-    r = requests.post(url, data=out_param, headers=headers)
-    return r
 
 @app.route('/subscribe', methods=['POST'])
 def sub():
+    from utils import send_sub_for_channel
+    # send subscription request to pubhubsubbub
     in_param = {
         "token": request.form.get('token'),
         "channelId": request.form.get('channelId'),
@@ -87,15 +43,22 @@ def sub():
 
 
 @app.route('/hook', methods=['GET'])
-def registerhook():
+def register_hook():
+    from dao import persist_sub
     challenge, token, topic, mode = [request.args.get("hub.challenge"), request.args.get("hub.verify_token"),
                                      request.args.get("hub.topic"), request.args.get("hub.mode")]
     print("register hook called: \n mode : {}\n token: {}\n topic: {}".format(mode, token, topic))
+
+    lease_seconds = request.args.get("hub.lease_seconds")
+    now = datetime.datetime.now()
+    lease = now + datetime.timedelta(0, int(lease_seconds))
+    print("now: %s lease: %s" % (now, lease))
+
     if None not in [mode, challenge]:
         if token == SUBTOKEN:
-            channelId = topic.split("channel_id=")[1]
-            print("verifying sub change of channel: {} with challenge {}".format(channelId, challenge))
-            persist_sub(channelId)
+            channel_id = topic.split("channel_id=")[1]
+            print("verifying sub change of channel: {} with challenge {}".format(channel_id, challenge))
+            persist_sub(conn, channel_id, lease)
             return challenge
         else:
             print("invalid or missing token")
@@ -106,7 +69,9 @@ def registerhook():
 
 
 @app.route('/hook', methods=['POST'])
-def receivehook():
+def receive_event():
+    from dao import persist_event
+    # receive updates from the hub
     body = request.get_data(cache=False, as_text=False, parse_form_data=False)
     print(
         "data to hook of type {}, length: {}, received: {}".format(request.content_type, request.content_length, body))
@@ -120,54 +85,17 @@ def receivehook():
         "videoTitle": entry["title"]
     }
 
-    persist_event(evt)
+    persist_event(conn, evt)
     return "OKAY"
-
-
-@app.route('/getmsg/', methods=['GET'])
-def respond():
-    # Retrieve the name from url parameter
-    name = request.args.get("name", None)
-    # For debugging
-    print(f"got name {name}")
-
-    response = {}
-
-    # Check if user sent a name at all
-    if not name:
-        response["ERROR"] = "no name found, please send a name."
-    # Check if the user entered a number not a name
-    elif str(name).isdigit():
-        response["ERROR"] = "name can't be numeric."
-    # Now the user entered a valid name
-    else:
-        response["MESSAGE"] = f"Welcome {name} to our awesome platform!!"
-
-    # Return the response in json format
-    return jsonify(response)
-
-
-@app.route('/post/', methods=['POST'])
-def post_something():
-    param = request.form.get('name')
-    print(param)
-    # You can add the test cases you made in the previous function, but in our case here you are just testing the POST functionality
-    if param:
-        return jsonify({
-            "Message": f"Welcome {name} to our awesome platform!!",
-            # Add this option to distinct the POST request
-            "METHOD": "POST"
-        })
-    else:
-        return jsonify({
-            "ERROR": "no name found, please send a name."
-        })
 
 
 # A welcome message to test our server
 @app.route('/')
 def index():
-    return "<h1>Welcome to our server !!</h1>"
+    from dao import get_subs_data
+    subs = get_subs_data(conn)
+    return render_template('main.html', results=subs)
+    #return "<h1>Welcome to our server !!</h1>"
 
 
 if __name__ == '__main__':
