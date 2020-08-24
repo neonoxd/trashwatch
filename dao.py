@@ -34,24 +34,20 @@ def get_subs_data(conn):
         sub_obj = {}
 
         for k in subs:
+            sub_obj[k[1]] = {}
             if k[1] in tmap:
-                sub_obj[k[1]] = {}
                 sub_obj[k[1]]["nick"] = tmap[k[1]]
-                sub_obj[k[1]]["channel_id"] = k[1]
-                if k[2] is not None:
-                    sub_obj[k[1]]["lease_date"] = k[2].strftime("%m/%d/%Y, %H:%M:%S")
-                if k[3] is not None:
-                    sub_obj[k[1]]["last_event"] = k[3].strftime("%m/%d/%Y, %H:%M:%S")
-                if k[4] is not None:
-                    sub_obj[k[1]]["last_video"] = k[4].strip()
-                if k[5] is not None:
-                    sub_obj[k[1]]["video_title"] = k[5].strip()
-        print("aaa %s" % sub_obj)
-        return sub_obj
+            sub_obj[k[1]]["channel_id"] = k[1]
+            if k[2] is not None:
+                sub_obj[k[1]]["lease_date"] = k[2].strftime("%m/%d/%Y, %H:%M:%S")
+            if k[3] is not None:
+                sub_obj[k[1]]["last_event"] = k[3].strftime("%m/%d/%Y, %H:%M:%S")
+            if k[4] is not None:
+                sub_obj[k[1]]["last_video"] = k[4].strip()
+            if k[5] is not None:
+                sub_obj[k[1]]["video_title"] = k[5].strip()
 
-        #return {
-         #   k[1]: {"nick": tmap[k[1]], "channel_id": k[1], "lease_date": k[2].strftime("%m/%d/%Y, %H:%M:%S") or None, "last_event": k[3].strftime("%m/%d/%Y, %H:%M:%S") or None, "last_video": k[4].strip(),
-          #         "video_title": k[5].strip()} for k in subs if k[1] in tmap}
+        return sub_obj
 
     except (Exception, psycopg2.Error) as error:
         print("Error while fetching data from PostgreSQL", error)

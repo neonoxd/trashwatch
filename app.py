@@ -3,7 +3,7 @@ import os
 import datetime
 import xmltodict
 import psycopg2
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 import json
 from dotenv import load_dotenv
 
@@ -97,6 +97,10 @@ def index():
     return render_template('main.html', results=subs)
     #return "<h1>Welcome to our server !!</h1>"
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 if __name__ == '__main__':
     # Threaded option to enable multiple instances for multiple user access support

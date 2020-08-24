@@ -2,6 +2,7 @@
 <head>
     <title>trash</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
     <style type="text/css">
       .container {
@@ -25,7 +26,13 @@
         </thead>
         <tbody>
         {% for r in results %}
-        <tr><td><a href="https://youtube.com/channel/{{r}}">{{results[r].nick}}</a></td>
+        <tr><td><a href="https://youtube.com/channel/{{r}}">
+            {% if results[r].nick %}
+            {{results[r].nick}}
+            {% else %}
+            {{r}}
+            {% endif %}
+        </a></td>
         <td> {{results[r].lease_date}} </td>
         <td> {{results[r].last_event}} </td>
         <td><a href="https://www.youtube.com/watch?v={{results[r].last_video}}">{{results[r].video_title}}</a></td></tr>
