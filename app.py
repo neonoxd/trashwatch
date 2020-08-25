@@ -14,6 +14,7 @@ load_dotenv()
 DATABASE_URL = os.environ['DATABASE_URL']
 SUBTOKEN = os.getenv('SUB_SECRET')
 APPURL = os.getenv('APPURL')
+DC_WEBHOOK_URL = os.getenv('DC_WEBHOOK_URL')
 
 
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
@@ -67,22 +68,34 @@ def register_hook():
 @app.route('/hook', methods=['POST'])
 def receive_event():
     from dao import persist_event
+    from utils import send_hook_bad_xml
     # receive updates from the hub
     body = request.get_data(cache=False, as_text=False, parse_form_data=False)
     print(
         "data to hook of type {}, length: {}, received: {}".format(request.content_type, request.content_length, body))
-
-    content_json = json.loads(json.dumps(xmltodict.parse(body)))
-    entry = content_json["feed"]["entry"]
-    evt = {
-        "name": entry["author"]["name"],
-        "channelId": entry["yt:channelId"],
-        "videoId": entry["yt:videoId"],
-        "videoTitle": entry["title"]
-    }
-
-    persist_event(conn, evt)
-    return "OKAY"
+    try:
+        content_json = json.loads(json.dumps(xmltodict.parse(body)))
+        if "entry" in content_json["feed"]:
+            entry = content_json["feed"]["entry"]
+            evt = {
+                "name": entry["author"]["name"],
+                "channelId": entry["yt:channelId"],
+                "videoId": entry["yt:videoId"],
+                "videoTitle": entry["title"]
+            }
+            persist_event(conn, evt)
+        elif "at:deleted-entry" in content_json["feed"]:
+            del_entry = content_json['feed']['at:deleted-entry']
+            print("deleted, vid id: {}, when: {}, channel: {}"
+                  .format(del_entry['@ref'].split(":")[2], del_entry['@when'],
+                          del_entry['at:by']['uri'].split("channel/")[1]))
+        else:
+            send_hook_bad_xml(body.decode())
+            return "NOTOKAY"
+        return "OKAY"
+    except Exception as e:
+        send_hook_bad_xml(body.decode())
+        return "NOTOKAY"
 
 
 # A welcome message to test our server

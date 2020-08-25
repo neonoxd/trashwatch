@@ -20,3 +20,12 @@ def send_sub_for_channel(channel_id, mode, token):
 
     r = requests.post(url, data=out_param, headers=headers)
     return r
+
+def send_hook_bad_xml(body):
+    from app import DC_WEBHOOK_URL as url
+    content = {
+        "content": "Unparseable XML received from hub ```xml\n{}```".format(body)
+    }
+    r = requests.post(url, data=content, headers={})
+    print(r.status_code)
+    return r
