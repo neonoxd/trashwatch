@@ -106,6 +106,12 @@ def receive_event():
         return "NOTOKAY"
 
 
+@app.route('/list', methods=['GET'])
+def list_subs():
+    from dao import get_subs_data
+    return jsonify(get_subs_data(conn))
+
+
 # A welcome message to test our server
 @app.route('/')
 def index():
