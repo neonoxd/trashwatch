@@ -88,7 +88,7 @@ def receive_event():
             print("waiting for youtube to catch up...") # because pubsubhubbub is faster than yt's own api
             time.sleep(30)
             yt_json = check_user_yt(evt["channelId"])
-            if "isLive" in yt_json and yt_json["isLive"]:
+            if "islive" in yt_json and yt_json["islive"]:
                 evt["type"] = "live"
                 evt["videoTitle"] = yt_json["title"]
                 evt["videoId"] = yt_json["video_id"]
