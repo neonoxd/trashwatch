@@ -22,11 +22,13 @@
             <th>track_end</th>
             <th>last_activity</th>
             <th>last_video</th>
+            <th>activity_type</th>
         </tr>
         </thead>
         <tbody>
         {% for r in results %}
-        <tr><td><a href="https://youtube.com/channel/{{r}}">
+        <tr>
+        <td><a href="https://youtube.com/channel/{{r}}">
             {% if results[r].nick %}
             {{results[r].nick}}
             {% else %}
@@ -35,7 +37,9 @@
         </a></td>
         <td> {{results[r].lease_date}} </td>
         <td> {{results[r].last_event}} </td>
-        <td><a href="https://www.youtube.com/watch?v={{results[r].last_video}}">{{results[r].video_title}}</a></td></tr>
+        <td><a href="https://www.youtube.com/watch?v={{results[r].last_video}}">{{results[r].video_title}}</a></td>
+        <td> {{results[r].video_type}} </td>
+        </tr>
         {% endfor %}
         </tbody>
     </table>

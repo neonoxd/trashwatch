@@ -6,6 +6,7 @@ import psycopg2
 from flask import Flask, request, jsonify, render_template, send_from_directory
 import json
 from dotenv import load_dotenv
+from utils import check_user_yt
 
 app = Flask(__name__)
 
@@ -15,7 +16,7 @@ DATABASE_URL = os.environ['DATABASE_URL']
 SUBTOKEN = os.getenv('SUB_SECRET')
 APPURL = os.getenv('APPURL')
 DC_WEBHOOK_URL = os.getenv('DC_WEBHOOK_URL')
-
+YT_APIKEY = os.getenv('YT_APIKEY')
 
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 conn.autocommit = True
@@ -81,8 +82,15 @@ def receive_event():
                 "name": entry["author"]["name"],
                 "channelId": entry["yt:channelId"],
                 "videoId": entry["yt:videoId"],
-                "videoTitle": entry["title"]
+                "videoTitle": entry["title"],
+                "type": "video"
             }
+            yt_json = check_user_yt(evt["channelId"])
+            if "isLive" in yt_json and yt_json["isLive"]:
+                evt["type"] = "live"
+                evt["videoTitle"] = yt_json["title"]
+                evt["videoId"] = yt_json["video_id"]
+
             persist_event(conn, evt)
         elif "at:deleted-entry" in content_json["feed"]:
             del_entry = content_json['feed']['at:deleted-entry']
@@ -104,12 +112,13 @@ def index():
     from dao import get_subs_data
     subs = get_subs_data(conn)
     return render_template('main.html', results=subs)
-    #return "<h1>Welcome to our server !!</h1>"
+
 
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 
 if __name__ == '__main__':
     # Threaded option to enable multiple instances for multiple user access support

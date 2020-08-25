@@ -42,6 +42,8 @@ def get_subs_data(conn):
                 sub_obj[k[1]]["video_title"] = k[5].strip()
             if k[6] is not None:
                 sub_obj[k[1]]["nick"] = k[6]
+            if k[7] is not None:
+                sub_obj[k[1]]["video_type"] = k[7]
 
         return sub_obj
 
@@ -97,8 +99,11 @@ def persist_event(conn, evt):
     try:
         cursor = conn.cursor()
 
-        updqry = "update subscription set last_id = %s, last_event = %s, video_title = %s where channel_id = %s"
-        cursor.execute(updqry, (evt["videoId"], datetime.datetime.now(), evt["videoTitle"], evt["channelId"]))
+        updqry = """update subscription 
+        set last_id = %s, last_event = %s, video_title = %s, video_type = %s
+        where channel_id = %s"""
+        cursor.execute(updqry,
+                       (evt["videoId"], datetime.datetime.now(), evt["videoTitle"], evt["type"], evt["channelId"]))
 
     except (Exception, psycopg2.Error) as error:
         print("Error while fetching data from PostgreSQL", error)
