@@ -6,7 +6,7 @@ import psycopg2
 from flask import Flask, request, jsonify, render_template, send_from_directory
 import json
 from dotenv import load_dotenv
-from utils import check_user_yt
+from utils import check_user_yt, send_hook_bad_xml, handle_incoming_hook
 
 app = Flask(__name__)
 
@@ -68,40 +68,14 @@ def register_hook():
 
 @app.route('/hook', methods=['POST'])
 def receive_event():
-    from dao import persist_event
-    from utils import send_hook_bad_xml
     # receive updates from the hub
     body = request.get_data(cache=False, as_text=False, parse_form_data=False)
     print(
         "data to hook of type {}, length: {}, received: {}".format(request.content_type, request.content_length, body))
     try:
-        content_json = json.loads(json.dumps(xmltodict.parse(body)))
-        if "entry" in content_json["feed"]:
-            entry = content_json["feed"]["entry"]
-            evt = {
-                "name": entry["author"]["name"],
-                "channelId": entry["yt:channelId"],
-                "videoId": entry["yt:videoId"],
-                "videoTitle": entry["title"],
-                "type": "video"
-            }
-            print("waiting for youtube to catch up...") # because pubsubhubbub is faster than yt's own api
-            time.sleep(30)
-            yt_json = check_user_yt(evt["channelId"])
-            if "islive" in yt_json and yt_json["islive"]:
-                evt["type"] = "live"
-                evt["videoTitle"] = yt_json["title"]
-                evt["videoId"] = yt_json["video_id"]
-
-            persist_event(conn, evt)
-        elif "at:deleted-entry" in content_json["feed"]:
-            del_entry = content_json['feed']['at:deleted-entry']
-            print("deleted, vid id: {}, when: {}, channel: {}"
-                  .format(del_entry['@ref'].split(":")[2], del_entry['@when'],
-                          del_entry['at:by']['uri'].split("channel/")[1]))
-        else:
-            send_hook_bad_xml(body.decode())
-            return "NOTOKAY"
+        from threading import Thread
+        thread = Thread(target=handle_incoming_hook, kwargs={'conn': conn, 'body': body})
+        thread.start()
         return "OKAY"
     except Exception as e:
         send_hook_bad_xml(body.decode())

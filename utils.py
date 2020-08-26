@@ -49,3 +49,35 @@ def check_user_yt(channel_id):
         return {"islive": is_live, "thumbnail": thumbnail, "title": title, "video_id": video_id}
     except Exception as e:
         return {"islive": False}
+
+
+def handle_incoming_hook(conn, body):
+    from dao import persist_event
+    import json
+    import xmltodict
+    import time
+    content_json = json.loads(json.dumps(xmltodict.parse(body)))
+    if "entry" in content_json["feed"]:
+        entry = content_json["feed"]["entry"]
+        evt = {
+            "name": entry["author"]["name"],
+            "channelId": entry["yt:channelId"],
+            "videoId": entry["yt:videoId"],
+            "videoTitle": entry["title"],
+            "type": "video"
+        }
+        print("waiting for youtube to catch up...")  # because pubsubhubbub is faster than yt's own api
+        time.sleep(30)
+        yt_json = check_user_yt(evt["channelId"])
+        if "islive" in yt_json and yt_json["islive"]:
+            evt["type"] = "live"
+            evt["videoTitle"] = yt_json["title"]
+            evt["videoId"] = yt_json["video_id"]
+        persist_event(conn, evt)
+    elif "at:deleted-entry" in content_json["feed"]:
+        del_entry = content_json['feed']['at:deleted-entry']
+        print("deleted, vid id: {}, when: {}, channel: {}"
+              .format(del_entry['@ref'].split(":")[2], del_entry['@when'],
+                      del_entry['at:by']['uri'].split("channel/")[1]))
+    else:
+        send_hook_bad_xml(body.decode())
